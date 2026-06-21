@@ -7,6 +7,10 @@
 
 #pragma once
 
+#include <cstdlib>
+#include <utility>
+#include <vector>
+
 #include "plugins/components/ModalModel/CellularAutomata/Lattice.h"
 #include "plugins/components/ModalModel/CellularAutomata/Neighborhood.h"
 #include "plugins/components/ModalModel/CellularAutomata/Cell.h"
@@ -19,45 +23,33 @@ public:
     virtual ~Neighborhood_Moore() = default;
 public:
     virtual std::string show() override {
-        return "todo";
+        return "Moore";
     }
     virtual std::vector<Cell*> getNeighbors(Cell* cell)override {
         std::vector<Cell*> neighbors;
-        unsigned short numDimensions = parentCellularAutomata->getLattice()->getNumDimensions();
 		std::vector<int> cellPosition = cell->getPosition();
-        // TODO:  Redo for n-dims.
-        switch (numDimensions) {
-          case 1:
-                for (int r = 1; r <= radius; r++) {
-                    neighbors.emplace_back(getNeighborCell(cellPosition, {{0, -r}}));
-                    neighbors.emplace_back(getNeighborCell(cellPosition, {{0, -r}}));
-                }
-                break;
-            case 2:
-                for (int r = 1; r <= radius; r++) {
-                    neighbors.emplace_back(getNeighborCell(cellPosition, {{0, -r}}));
-                    neighbors.emplace_back(getNeighborCell(cellPosition, {{0, r}}));
-                    neighbors.emplace_back(getNeighborCell(cellPosition, {{1, -r}}));
-                    neighbors.emplace_back(getNeighborCell(cellPosition, {{1, r}}));
-                    neighbors.emplace_back(getNeighborCell(cellPosition, {{0,-r},{1, -r}}));
-                    neighbors.emplace_back(getNeighborCell(cellPosition, {{0,-r},{1, r}}));
-                    neighbors.emplace_back(getNeighborCell(cellPosition, {{0,r},{1, -r}}));
-                    neighbors.emplace_back(getNeighborCell(cellPosition, {{0,r},{1, r}}));
-                    // Moore with radius > 1 is not working (extra loops nedded)
-                }
-                break;
-            case 3:
-                break;
-            default:
-                break;
-        }
+		std::vector<int> offsets(cellPosition.size(), 0);
+		_generateNeighbors(cellPosition, offsets, 0, neighbors);
         if (includeCellItself)
             neighbors.emplace_back(cell);
-        std::cout << "Neighs from " << cell->show() <<" are: ";
-        for (Cell* n: neighbors) {
-            std::cout << n->show() << ", ";
-        }
-        std::cout << std::endl;
         return neighbors;
     }
+private:
+	void _generateNeighbors(const std::vector<int>& cellPosition, std::vector<int>& offsets, unsigned short dimension, std::vector<Cell*>& neighbors) {
+		if (dimension == offsets.size()) {
+			std::vector<std::pair<unsigned short, int>> dimensionChanges;
+			for (unsigned short dim = 0; dim < offsets.size(); ++dim) {
+				if (offsets.at(dim) != 0)
+					dimensionChanges.emplace_back(dim, offsets.at(dim));
+			}
+			if (!dimensionChanges.empty())
+				neighbors.emplace_back(getNeighborCell(cellPosition, dimensionChanges));
+			return;
+		}
+
+		for (int offset = -static_cast<int>(radius); offset <= static_cast<int>(radius); ++offset) {
+			offsets.at(dimension) = offset;
+			_generateNeighbors(cellPosition, offsets, dimension + 1, neighbors);
+		}
+	}
 };

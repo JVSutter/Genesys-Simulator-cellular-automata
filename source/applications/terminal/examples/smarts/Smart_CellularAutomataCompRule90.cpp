@@ -12,6 +12,7 @@
 
 #include <iostream>
 #include <string>
+#include <vector>
 
 namespace {
 
@@ -20,6 +21,42 @@ void SetInitialPattern(CellularAutomataComp* cellularAutomata, const std::string
 		const long value = pattern.at(cellNumber) == '1' ? 1 : 0;
 		cellularAutomata->setCellState(static_cast<long>(cellNumber), value);
 	}
+}
+
+void PrintNeighborhoodCount(Model* model, CellularAutomataComp::NeighboorhoodType neighborhoodType, const std::string& neighborhoodName, const std::vector<unsigned short>& dimensions) {
+	CellularAutomataComp* cellularAutomata = new CellularAutomataComp(model);
+	cellularAutomata->setCellularAutomataType(CellularAutomataComp::CellularAutomataType::CLASSIC);
+	cellularAutomata->setLatticeType(CellularAutomataComp::LatticeType::RETICULAR);
+	cellularAutomata->getlattice()->setDimensions(dimensions);
+	cellularAutomata->setNeighboorhoodType(neighborhoodType);
+	cellularAutomata->getNeighboorhood()->setRadius(1);
+	cellularAutomata->setBoundaryType(CellularAutomataComp::BoundaryType::CLOSED);
+	cellularAutomata->setStateSetType(CellularAutomataComp::StateSetType::ENUMERATED);
+	cellularAutomata->setLocalRuleType(CellularAutomataComp::LocalRuleType::ELEMENTAR_CA);
+
+	std::string errorMessage;
+	if (!cellularAutomata->initializeCellularAutomata(&errorMessage)) {
+		std::cout << neighborhoodName << " " << dimensions.size() << "D radius 1: initialization failed - " << errorMessage << std::endl;
+		return;
+	}
+
+	std::vector<int> centerPosition;
+	for (unsigned short dimension : dimensions)
+		centerPosition.emplace_back(static_cast<int>(dimension / 2));
+
+	const long centerCellNumber = cellularAutomata->getlattice()->cellNDimPosition2Number(centerPosition);
+	const unsigned long neighbors = cellularAutomata->getlattice()->getCell(centerCellNumber)->getNeighbors().size();
+	std::cout << neighborhoodName << " " << dimensions.size() << "D radius 1: " << neighbors << " neighbors" << std::endl;
+}
+
+void PrintNeighborhoodCounts(Model* model) {
+	std::cout << "Neighborhood sanity check" << std::endl;
+	PrintNeighborhoodCount(model, CellularAutomataComp::NeighboorhoodType::MOORE, "Moore", {3});
+	PrintNeighborhoodCount(model, CellularAutomataComp::NeighboorhoodType::VONNEUMANN, "Von Neumann", {3});
+	PrintNeighborhoodCount(model, CellularAutomataComp::NeighboorhoodType::MOORE, "Moore", {3, 3});
+	PrintNeighborhoodCount(model, CellularAutomataComp::NeighboorhoodType::VONNEUMANN, "Von Neumann", {3, 3});
+	PrintNeighborhoodCount(model, CellularAutomataComp::NeighboorhoodType::MOORE, "Moore", {3, 3, 3});
+	PrintNeighborhoodCount(model, CellularAutomataComp::NeighboorhoodType::VONNEUMANN, "Von Neumann", {3, 3, 3});
 }
 
 void RunRule90(Model* model, CellularAutomataComp::BoundaryType boundaryType, const std::string& boundaryName) {
@@ -64,6 +101,9 @@ int Smart_CellularAutomataCompRule90::main(int argc, char** argv) {
 	setDefaultTraceHandlers(genesys->getTraceManager());
 
 	Model* model = genesys->getModelManager()->newModel();
+
+	PrintNeighborhoodCounts(model);
+	std::cout << std::endl;
 
 	std::cout << "Elementary cellular automaton through CellularAutomataComp - Rule 90" << std::endl;
 	std::cout << std::endl;
