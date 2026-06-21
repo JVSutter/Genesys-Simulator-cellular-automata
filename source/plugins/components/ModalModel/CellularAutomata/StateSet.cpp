@@ -18,3 +18,14 @@ StateSet::StateSet(const StateSet& orig) {
  *  PUBLIC
  * **************/
 
+bool StateSet::contains(const State& state) const {
+	return true;
+}
+
+std::string StateSet::show() const {
+	return typeName();
+}
+
+std::string StateSet::typeName() const {
+	return "generic";
+}

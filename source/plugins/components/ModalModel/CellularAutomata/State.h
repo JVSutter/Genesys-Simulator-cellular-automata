@@ -69,7 +69,7 @@ public:
 	State(const State& orig) : _value(orig._value) {}
 	virtual ~State() = default;
 public:
-	long getValue(){return _value;}
+	long getValue() const {return _value;}
 	void setValue(long value) {_value=value;}
 	std::string show();
 protected:

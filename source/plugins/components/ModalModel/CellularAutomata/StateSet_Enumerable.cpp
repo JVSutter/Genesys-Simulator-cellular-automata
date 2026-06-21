@@ -21,8 +21,26 @@ StateSet_Enumerable::StateSet_Enumerable(const StateSet_Enumerable& orig)
  *  PUBLIC
  * **************/
 
-std::string StateSet_Enumerable::show() {
-	return "-";
+bool StateSet_Enumerable::contains(const State& state) const {
+	for (State* allowedState : states) {
+		if (allowedState != nullptr && allowedState->getValue() == state.getValue())
+			return true;
+	}
+	return false;
+}
+
+std::string StateSet_Enumerable::show() const {
+	std::string output = "{";
+	for (unsigned int i = 0; i < states.size(); ++i) {
+		if (i > 0)
+			output += ",";
+		output += states.at(i) == nullptr ? "null" : std::to_string(states.at(i)->getValue());
+	}
+	return output + "}";
+}
+
+std::string StateSet_Enumerable::typeName() const {
+	return "enumerated";
 }
 
 unsigned int StateSet_Enumerable::size(){

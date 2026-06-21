@@ -13,7 +13,9 @@ public:
 	StateSet_Enumerable(const StateSet_Enumerable& orig);
 	virtual ~StateSet_Enumerable()=default;
 public:
-	virtual std::string show();
+	virtual bool contains(const State& state) const override;
+	virtual std::string show() const override;
+	virtual std::string typeName() const override;
 	unsigned int size();
 	void addState(State* state);
 	unsigned int getStatesSize();

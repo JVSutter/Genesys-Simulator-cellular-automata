@@ -26,7 +26,10 @@
 #include "plugins/components/ModalModel/CellularAutomata/Neighborhood_Moore.h"
 #include "plugins/components/ModalModel/CellularAutomata/Neighborhood_VonNeumann.h"
 #include "plugins/components/ModalModel/CellularAutomata/State.h"
+#include "plugins/components/ModalModel/CellularAutomata/StateSet_Bit.h"
+#include "plugins/components/ModalModel/CellularAutomata/StateSet_Double.h"
 #include "plugins/components/ModalModel/CellularAutomata/StateSet_Enumerable.h"
+#include "plugins/components/ModalModel/CellularAutomata/StateSet_Integer.h"
 
 #include <algorithm>
 #include <numeric>
@@ -115,6 +118,8 @@ bool CellularAutomataComp::_check(std::string* errorMessage) {
 	}
 	if (!_checkLattice(errorMessage))
 		return false;
+	if (!_checkStateSet(errorMessage))
+		return false;
 	if (!_checkRuleCompatibility(errorMessage))
 		return false;
 	if (!_checkUpdatePolicy(errorMessage))
@@ -152,6 +157,8 @@ bool CellularAutomataComp::setCellState(long cellNumber, long value) {
 	if (_lattice == nullptr)
 		return false;
 	State state(value);
+	if (_stateSet != nullptr && !_stateSet->contains(state))
+		return false;
 	return _lattice->setCellState(cellNumber, &state);
 }
 
@@ -159,6 +166,8 @@ bool CellularAutomataComp::setCellState(const std::vector<int>& position, long v
 	if (_lattice == nullptr)
 		return false;
 	State state(value);
+	if (_stateSet != nullptr && !_stateSet->contains(state))
+		return false;
 	return _lattice->setCellState(position, &state);
 }
 
@@ -240,8 +249,12 @@ void CellularAutomataComp::setStateSetType(CellularAutomataComp::StateSetType ne
 	_stateSet = nullptr;
 	if (_stateSetType == StateSetType::ENUMERATED)
 		_stateSet = new StateSet_Enumerable(_cellularAutomata, {new State(0), new State(1)});
-	else
-		_stateSet = new StateSet(_cellularAutomata);
+	else if (_stateSetType == StateSetType::INTEGERBASED)
+		_stateSet = new StateSet_Integer(_cellularAutomata);
+	else if (_stateSetType == StateSetType::BITBASED)
+		_stateSet = new StateSet_Bit(_cellularAutomata);
+	else if (_stateSetType == StateSetType::DOUBLEBASED)
+		_stateSet = new StateSet_Double(_cellularAutomata);
 }
 
 
@@ -408,6 +421,15 @@ bool CellularAutomataComp::_checkLattice(std::string* errorMessage) const {
 	return true;
 }
 
+bool CellularAutomataComp::_checkStateSet(std::string* errorMessage) const {
+	if (_stateSet == nullptr) {
+		if (errorMessage != nullptr)
+			*errorMessage += "State set type was not configured. ";
+		return false;
+	}
+	return true;
+}
+
 bool CellularAutomataComp::_checkRuleCompatibility(std::string* errorMessage) const {
 	const unsigned short numDimensions = _lattice->getNumDimensions();
 	if (_neighboorhoodType == NeighboorhoodType::CENTERED && numDimensions != 1) {
@@ -426,6 +448,11 @@ bool CellularAutomataComp::_checkRuleCompatibility(std::string* errorMessage) co
 				*errorMessage += "Elementary cellular automata rule requires radius-1 neighborhood. ";
 			return false;
 		}
+		if (_stateSetType != StateSetType::ENUMERATED && _stateSetType != StateSetType::BITBASED) {
+			if (errorMessage != nullptr)
+				*errorMessage += "Elementary cellular automata rule requires a binary state set. ";
+			return false;
+		}
 	}
 	if (_localRuleType == LocalRuleType::GAME_OF_LIFE) {
 		if (numDimensions != 2 || _neighboorhoodType != NeighboorhoodType::MOORE || _neighboorhood->getRadius() != 1) {
@@ -434,9 +461,11 @@ bool CellularAutomataComp::_checkRuleCompatibility(std::string* errorMessage) co
 			return false;
 		}
 		StateSet_Enumerable* enumerableStateSet = dynamic_cast<StateSet_Enumerable*>(_stateSet);
-		if (_stateSetType != StateSetType::ENUMERATED || enumerableStateSet == nullptr || enumerableStateSet->getStatesSize() != 2) {
+		const bool isEnumeratedBinary = _stateSetType == StateSetType::ENUMERATED && enumerableStateSet != nullptr && enumerableStateSet->getStatesSize() == 2;
+		const bool isBitBased = _stateSetType == StateSetType::BITBASED;
+		if (!isEnumeratedBinary && !isBitBased) {
 			if (errorMessage != nullptr)
-				*errorMessage += "Game of Life requires an enumerated binary state set. ";
+				*errorMessage += "Game of Life requires a binary state set. ";
 			return false;
 		}
 	}

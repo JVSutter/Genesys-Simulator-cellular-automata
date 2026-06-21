@@ -55,6 +55,23 @@ bool RunCase(Model* model, const std::string& name, bool expectedResult, Configu
 	return passed;
 }
 
+bool RunInvalidBitStateCase(Model* model) {
+	CellularAutomataComp* cellularAutomata = new CellularAutomataComp(model);
+	ConfigureRule90(cellularAutomata);
+	cellularAutomata->setStateSetType(CellularAutomataComp::StateSetType::BITBASED);
+
+	std::string errorMessage;
+	const bool initialized = cellularAutomata->initializeCellularAutomata(&errorMessage);
+	const bool rejectedInvalidState = !cellularAutomata->setCellState(0, 2);
+	const bool passed = initialized && rejectedInvalidState;
+
+	std::cout << (passed ? "PASS" : "FAIL") << " - Bit-based state set rejects state value 2";
+	if (!errorMessage.empty())
+		std::cout << " - " << errorMessage;
+	std::cout << std::endl;
+	return passed;
+}
+
 }
 
 Smart_CellularAutomataSemanticChecks::Smart_CellularAutomataSemanticChecks() {
@@ -87,6 +104,25 @@ int Smart_CellularAutomataSemanticChecks::main(int argc, char** argv) {
 	allPassed &= RunCase(model, "Hexagonal lattice is rejected as not implemented", false, [](CellularAutomataComp* cellularAutomata) {
 		ConfigureRule90(cellularAutomata);
 		cellularAutomata->setLatticeType(CellularAutomataComp::LatticeType::HEXAGONAL);
+	});
+	allPassed &= RunCase(model, "Rule 90 with bit-based state set is accepted", true, [](CellularAutomataComp* cellularAutomata) {
+		ConfigureRule90(cellularAutomata);
+		cellularAutomata->setStateSetType(CellularAutomataComp::StateSetType::BITBASED);
+	});
+	allPassed &= RunInvalidBitStateCase(model);
+	allPassed &= RunCase(model, "Game of Life with integer-based state set is rejected", false, [](CellularAutomataComp* cellularAutomata) {
+		ConfigureGameOfLife(cellularAutomata);
+		cellularAutomata->setStateSetType(CellularAutomataComp::StateSetType::INTEGERBASED);
+	});
+	allPassed &= RunCase(model, "Double-based state set with generic rule is accepted", true, [](CellularAutomataComp* cellularAutomata) {
+		cellularAutomata->setCellularAutomataType(CellularAutomataComp::CellularAutomataType::CLASSIC);
+		cellularAutomata->setLatticeType(CellularAutomataComp::LatticeType::RETICULAR);
+		cellularAutomata->getlattice()->setDimensions({3});
+		cellularAutomata->setNeighboorhoodType(CellularAutomataComp::NeighboorhoodType::VONNEUMANN);
+		cellularAutomata->getNeighboorhood()->setRadius(1);
+		cellularAutomata->setBoundaryType(CellularAutomataComp::BoundaryType::FIXED);
+		cellularAutomata->setStateSetType(CellularAutomataComp::StateSetType::DOUBLEBASED);
+		cellularAutomata->setLocalRuleType(CellularAutomataComp::LocalRuleType::BIASED_COMPETITION);
 	});
 	allPassed &= RunCase(model, "Valid Game of Life configuration is accepted", true, [](CellularAutomataComp* cellularAutomata) {
 		ConfigureGameOfLife(cellularAutomata);
