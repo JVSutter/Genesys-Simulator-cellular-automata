@@ -56,6 +56,10 @@ public: //! enums
 	enum class AutomataType : int {
 		Temporary = 0, Permanent = 1
 	};
+
+	enum class UpdatePolicyType : int {
+		SYNCHRONOUS = 1, SEQUENTIAL = 2, RANDOM = 3, BLOCKS = 4
+	};
 	
 public: //! constructors
 	CellularAutomataComp(Model* model, std::string name = "");
@@ -83,6 +87,12 @@ public: //! new public user methods for this component
 	bool setCellState(const std::vector<int>& position, long value);
 	std::string showCellularAutomata() const;
 	void setElementaryRuleNumber(uint8_t ruleNumber);
+	CellularAutomataComp::UpdatePolicyType getUpdatePolicyType() const;
+	void setUpdatePolicyType(CellularAutomataComp::UpdatePolicyType updatePolicyType);
+	unsigned int getUpdateBlockSize() const;
+	void setUpdateBlockSize(unsigned int updateBlockSize);
+	unsigned int getRandomSeed() const;
+	void setRandomSeed(unsigned int randomSeed);
 
 	//CellularAutomataBase *getcellularAutomata() const;
 	Lattice *getlattice() const;
@@ -130,6 +140,11 @@ protected:
 
 private: //! new private user methods
 	void _ensureCellularAutomata();
+	void _stepCellularAutomataByPolicy();
+	void _stepSequential();
+	void _stepRandom();
+	void _stepBlocks();
+	void _applyRuleAndUpdateCell(unsigned long cellNumber);
 
 private: //! Attributes that should be loaded or saved with this component (Persistent Fields)
 
@@ -141,6 +156,9 @@ private: //! Attributes that should be loaded or saved with this component (Pers
 		const BoundaryType boundaryType = BoundaryType::FIXED;
 		const StateSetType stateSetType = StateSetType::ENUMERATED;
 		const LocalRuleType localRuleType = LocalRuleType::GAME_OF_LIFE;
+		const UpdatePolicyType updatePolicyType = UpdatePolicyType::SYNCHRONOUS;
+		const unsigned int updateBlockSize = 1;
+		const unsigned int randomSeed = 1;
 	} DEFAULT;
 	CellularAutomataComp::CellularAutomataType _cellularAutomataType = DEFAULT.cellularAutomataType;
 	CellularAutomataComp::LatticeType _latticeType = DEFAULT.latticeType;
@@ -148,6 +166,9 @@ private: //! Attributes that should be loaded or saved with this component (Pers
 	CellularAutomataComp::BoundaryType _boundaryType = DEFAULT.boundaryType;
 	CellularAutomataComp::StateSetType _stateSetType = DEFAULT.stateSetType;
 	CellularAutomataComp::LocalRuleType _localRuleType = DEFAULT.localRuleType;
+	CellularAutomataComp::UpdatePolicyType _updatePolicyType = DEFAULT.updatePolicyType;
+	unsigned int _updateBlockSize = DEFAULT.updateBlockSize;
+	unsigned int _randomSeed = DEFAULT.randomSeed;
 	uint8_t _elementaryRuleNumber = 30;
 
 private: //! Attributes that do not need to be loaded or saved with this component (Non Persistent Fields)
@@ -157,6 +178,7 @@ private: //! Attributes that do not need to be loaded or saved with this compone
 	BoundaryCondition* _boundary = nullptr;
 	StateSet* _stateSet = nullptr;
 	LocalRule* _localRule = nullptr;
+	unsigned int _randomStepCounter = 0;
 
 private: //! internal DataElements (Composition)
 

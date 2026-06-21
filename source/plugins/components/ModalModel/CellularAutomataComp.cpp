@@ -28,6 +28,9 @@
 #include "plugins/components/ModalModel/CellularAutomata/State.h"
 #include "plugins/components/ModalModel/CellularAutomata/StateSet_Enumerable.h"
 
+#include <algorithm>
+#include <numeric>
+#include <random>
 #include <sstream>
 
 #ifdef PLUGINCONNECT_DYNAMIC
@@ -60,7 +63,7 @@ ModelComponent* CellularAutomataComp::LoadInstance(Model* model, PersistenceReco
 }
 
 void CellularAutomataComp::_onDispatchEvent(Entity* entity, unsigned int inputPortNumber) {
-	_cellularAutomata->step();
+	_stepCellularAutomataByPolicy();
 	_parentModel->sendEntityToComponent(entity, this->getConnectionManager()->getFrontConnection());
 }
 
@@ -120,6 +123,7 @@ bool CellularAutomataComp::_check(std::string* errorMessage) {
 }
 
 void CellularAutomataComp::_initBetweenReplications() {
+	_randomStepCounter = 0;
 	_cellularAutomata->init();
 }
 
@@ -128,12 +132,12 @@ bool CellularAutomataComp::initializeCellularAutomata(std::string* errorMessage)
 	std::string* message = errorMessage != nullptr ? errorMessage : &localErrorMessage;
 	if (!_check(message))
 		return false;
+	_randomStepCounter = 0;
 	return _cellularAutomata->init();
 }
 
 void CellularAutomataComp::stepCellularAutomata() {
-	if (_cellularAutomata != nullptr)
-		_cellularAutomata->step();
+	_stepCellularAutomataByPolicy();
 }
 
 bool CellularAutomataComp::setCellState(long cellNumber, long value) {
@@ -166,6 +170,31 @@ void CellularAutomataComp::setElementaryRuleNumber(uint8_t ruleNumber) {
 		if (auto* elementaryRule = dynamic_cast<LocalRule_Elementary*>(_localRule))
 			elementaryRule->setRuleNumber(ruleNumber);
 	}
+}
+
+CellularAutomataComp::UpdatePolicyType CellularAutomataComp::getUpdatePolicyType() const {
+	return _updatePolicyType;
+}
+
+void CellularAutomataComp::setUpdatePolicyType(CellularAutomataComp::UpdatePolicyType updatePolicyType) {
+	_updatePolicyType = updatePolicyType;
+}
+
+unsigned int CellularAutomataComp::getUpdateBlockSize() const {
+	return _updateBlockSize;
+}
+
+void CellularAutomataComp::setUpdateBlockSize(unsigned int updateBlockSize) {
+	_updateBlockSize = updateBlockSize == 0 ? 1 : updateBlockSize;
+}
+
+unsigned int CellularAutomataComp::getRandomSeed() const {
+	return _randomSeed;
+}
+
+void CellularAutomataComp::setRandomSeed(unsigned int randomSeed) {
+	_randomSeed = randomSeed;
+	_randomStepCounter = 0;
 }
 
 LocalRule *CellularAutomataComp::getlocalRule() const
@@ -310,6 +339,50 @@ void CellularAutomataComp::setBoundaryType(CellularAutomataComp::BoundaryType ne
 void CellularAutomataComp::_ensureCellularAutomata() {
 	if (_cellularAutomata == nullptr)
 		setCellularAutomataType(_cellularAutomataType);
+}
+
+void CellularAutomataComp::_stepCellularAutomataByPolicy() {
+	if (_cellularAutomata == nullptr || _lattice == nullptr || _localRule == nullptr)
+		return;
+	if (_updatePolicyType == UpdatePolicyType::SYNCHRONOUS)
+		_cellularAutomata->step();
+	else if (_updatePolicyType == UpdatePolicyType::SEQUENTIAL)
+		_stepSequential();
+	else if (_updatePolicyType == UpdatePolicyType::RANDOM)
+		_stepRandom();
+	else if (_updatePolicyType == UpdatePolicyType::BLOCKS)
+		_stepBlocks();
+}
+
+void CellularAutomataComp::_stepSequential() {
+	for (unsigned long cellNumber = 0; cellNumber < _lattice->getCellsSize(); ++cellNumber)
+		_applyRuleAndUpdateCell(cellNumber);
+}
+
+void CellularAutomataComp::_stepRandom() {
+	std::vector<unsigned long> cellNumbers(_lattice->getCellsSize());
+	std::iota(cellNumbers.begin(), cellNumbers.end(), 0);
+	std::mt19937 randomEngine(_randomSeed + _randomStepCounter++);
+	std::shuffle(cellNumbers.begin(), cellNumbers.end(), randomEngine);
+	for (unsigned long cellNumber : cellNumbers)
+		_applyRuleAndUpdateCell(cellNumber);
+}
+
+void CellularAutomataComp::_stepBlocks() {
+	const unsigned int blockSize = _updateBlockSize == 0 ? 1 : _updateBlockSize;
+	for (unsigned long firstCellNumber = 0; firstCellNumber < _lattice->getCellsSize(); firstCellNumber += blockSize) {
+		const unsigned long lastCellNumber = std::min<unsigned long>(firstCellNumber + blockSize, _lattice->getCellsSize());
+		for (unsigned long cellNumber = firstCellNumber; cellNumber < lastCellNumber; ++cellNumber)
+			_localRule->applyRule(_lattice->getCell(static_cast<long>(cellNumber)));
+		for (unsigned long cellNumber = firstCellNumber; cellNumber < lastCellNumber; ++cellNumber)
+			_lattice->getCell(static_cast<long>(cellNumber))->updateState();
+	}
+}
+
+void CellularAutomataComp::_applyRuleAndUpdateCell(unsigned long cellNumber) {
+	Cell* cell = _lattice->getCell(static_cast<long>(cellNumber));
+	_localRule->applyRule(cell);
+	cell->updateState();
 }
 
 PluginInformation* CellularAutomataComp::GetPluginInformation() {

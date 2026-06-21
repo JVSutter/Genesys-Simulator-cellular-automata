@@ -1,0 +1,83 @@
+/*
+ * File:   Smart_CellularAutomataUpdatePolicies.cpp
+ *
+ * Minimal terminal example that compares synchronous, sequential, random and
+ * block update policies in CellularAutomataComp.
+ */
+
+#include "Smart_CellularAutomataUpdatePolicies.h"
+
+#include "kernel/simulator/Simulator.h"
+#include "plugins/components/ModalModel/CellularAutomataComp.h"
+
+#include <iostream>
+#include <string>
+
+namespace {
+
+void SetInitialPattern(CellularAutomataComp* cellularAutomata, const std::string& pattern) {
+	for (unsigned long cellNumber = 0; cellNumber < pattern.size(); ++cellNumber) {
+		const long value = pattern.at(cellNumber) == '1' ? 1 : 0;
+		cellularAutomata->setCellState(static_cast<long>(cellNumber), value);
+	}
+}
+
+void RunPolicy(Model* model, CellularAutomataComp::UpdatePolicyType updatePolicyType, const std::string& policyName, unsigned int blockSize = 1, unsigned int randomSeed = 1) {
+	CellularAutomataComp* cellularAutomata = new CellularAutomataComp(model);
+	cellularAutomata->setCellularAutomataType(CellularAutomataComp::CellularAutomataType::CLASSIC);
+	cellularAutomata->setLatticeType(CellularAutomataComp::LatticeType::RETICULAR);
+	cellularAutomata->getlattice()->setDimensions({7});
+	cellularAutomata->setNeighboorhoodType(CellularAutomataComp::NeighboorhoodType::CENTERED);
+	cellularAutomata->getNeighboorhood()->setRadius(1);
+	cellularAutomata->setBoundaryType(CellularAutomataComp::BoundaryType::FIXED);
+	cellularAutomata->setStateSetType(CellularAutomataComp::StateSetType::ENUMERATED);
+	cellularAutomata->setElementaryRuleNumber(90);
+	cellularAutomata->setLocalRuleType(CellularAutomataComp::LocalRuleType::ELEMENTAR_CA);
+	cellularAutomata->setUpdatePolicyType(updatePolicyType);
+	cellularAutomata->setUpdateBlockSize(blockSize);
+	cellularAutomata->setRandomSeed(randomSeed);
+
+	std::string errorMessage;
+	if (!cellularAutomata->initializeCellularAutomata(&errorMessage)) {
+		std::cout << "Could not initialize CellularAutomataComp: " << errorMessage << std::endl;
+		return;
+	}
+
+	SetInitialPattern(cellularAutomata, "1001000");
+
+	std::cout << policyName << std::endl;
+	const unsigned int steps = 4;
+	std::cout << "t0: " << cellularAutomata->showCellularAutomata() << std::endl;
+	for (unsigned int step = 1; step <= steps; ++step) {
+		cellularAutomata->stepCellularAutomata();
+		std::cout << "t" << step << ": " << cellularAutomata->showCellularAutomata() << std::endl;
+	}
+}
+
+}
+
+Smart_CellularAutomataUpdatePolicies::Smart_CellularAutomataUpdatePolicies() {
+}
+
+int Smart_CellularAutomataUpdatePolicies::main(int argc, char** argv) {
+	Simulator* genesys = new Simulator();
+	genesys->getTraceManager()->setTraceLevel(TraceManager::Level::L0_noTraces);
+	setDefaultTraceHandlers(genesys->getTraceManager());
+
+	Model* model = genesys->getModelManager()->newModel();
+
+	std::cout << "CellularAutomataComp update policy comparison - Rule 90" << std::endl;
+	std::cout << "1D lattice, 7 cells, centered radius-1 neighborhood, fixed boundary" << std::endl;
+	std::cout << std::endl;
+
+	RunPolicy(model, CellularAutomataComp::UpdatePolicyType::SYNCHRONOUS, "synchronous");
+	std::cout << std::endl;
+	RunPolicy(model, CellularAutomataComp::UpdatePolicyType::SEQUENTIAL, "sequential deterministic");
+	std::cout << std::endl;
+	RunPolicy(model, CellularAutomataComp::UpdatePolicyType::RANDOM, "random asynchronous, seed 7", 1, 7);
+	std::cout << std::endl;
+	RunPolicy(model, CellularAutomataComp::UpdatePolicyType::BLOCKS, "blocks, size 2", 2);
+
+	delete genesys;
+	return 0;
+}
