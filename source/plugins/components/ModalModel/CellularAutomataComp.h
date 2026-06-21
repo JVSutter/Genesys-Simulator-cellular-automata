@@ -20,6 +20,7 @@
 #include "plugins/components/ModalModel/CellularAutomata/StateSet.h"
 
 class BoundaryCondition;
+class CppCompiler;
 
 /*!
  This component ...
@@ -56,7 +57,7 @@ public: //! enums
 	
 public: //! constructors
 	CellularAutomataComp(Model* model, std::string name = "");
-	virtual ~CellularAutomataComp() = default;
+	virtual ~CellularAutomataComp();
 
 public: //! new public user methods for this component
 	CellularAutomataComp::CellularAutomataType getCellularAutomataType() const;
@@ -91,6 +92,12 @@ public: //! static public methods that must have implementations (Load and New j
 	CellularAutomataComp::LocalRuleType getlocalRuleType() const;
 	void setLocalRuleType(CellularAutomataComp::LocalRuleType newLocalRuleType);
 
+	//! C++ source for a USERDEFINED local rule. The source must define the C-linkage function
+	//! `extern "C" long nextState(long self, const long* neighbors, int numNeighbors)`. It is compiled
+	//! at runtime (via CppCompiler) and loaded during model check. See LocalRule_UserDefined.
+	void setUserDefinedRuleSource(const std::string& userDefinedRuleSource);
+	std::string getUserDefinedRuleSource() const;
+
 	LocalRule *getlocalRule() const;
 
 protected: //! virtual protected method that must be overriden
@@ -119,7 +126,8 @@ protected:
 	// virtual void _createAttachedAttributes() override;
 
 private: //! new private user methods
-	// ...
+	//! Compiles and loads the USERDEFINED local rule from _userDefinedRuleSource (called by _check).
+	bool _buildUserDefinedRule(std::string* errorMessage);
 
 private: //! Attributes that should be loaded or saved with this component (Persistent Fields)
 
@@ -131,6 +139,7 @@ private: //! Attributes that should be loaded or saved with this component (Pers
 		const BoundaryType boundaryType = BoundaryType::FIXED;
 		const StateSetType stateSetType = StateSetType::ENUMERATED;
 		const LocalRuleType localRuleType = LocalRuleType::GAME_OF_LIFE;
+		const std::string userDefinedRuleSource = "";
 	} DEFAULT;
 	CellularAutomataComp::CellularAutomataType _cellularAutomataType = DEFAULT.cellularAutomataType;
 	CellularAutomataComp::LatticeType _latticeType = DEFAULT.latticeType;
@@ -138,6 +147,7 @@ private: //! Attributes that should be loaded or saved with this component (Pers
 	CellularAutomataComp::BoundaryType _boundaryType = DEFAULT.boundaryType;
 	CellularAutomataComp::StateSetType _stateSetType = DEFAULT.stateSetType;
 	CellularAutomataComp::LocalRuleType _localRuleType = DEFAULT.localRuleType;
+	std::string _userDefinedRuleSource = DEFAULT.userDefinedRuleSource;
 
 private: //! Attributes that do not need to be loaded or saved with this component (Non Persistent Fields)
 	CellularAutomataBase* _cellularAutomata = nullptr;
@@ -146,6 +156,7 @@ private: //! Attributes that do not need to be loaded or saved with this compone
 	BoundaryCondition* _boundary = nullptr;
 	StateSet* _stateSet = nullptr;
 	LocalRule* _localRule = nullptr;
+	CppCompiler* _ruleCompiler = nullptr; //!< owns runtime compilation for the USERDEFINED local rule
 
 private: //! internal DataElements (Composition)
 
