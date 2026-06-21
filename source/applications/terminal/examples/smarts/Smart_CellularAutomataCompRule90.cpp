@@ -32,7 +32,7 @@ void PrintNeighborhoodCount(Model* model, CellularAutomataComp::NeighboorhoodTyp
 	cellularAutomata->getNeighboorhood()->setRadius(1);
 	cellularAutomata->setBoundaryType(CellularAutomataComp::BoundaryType::CLOSED);
 	cellularAutomata->setStateSetType(CellularAutomataComp::StateSetType::ENUMERATED);
-	cellularAutomata->setLocalRuleType(CellularAutomataComp::LocalRuleType::ELEMENTAR_CA);
+	cellularAutomata->setLocalRuleType(CellularAutomataComp::LocalRuleType::BIASED_COMPETITION);
 
 	std::string errorMessage;
 	if (!cellularAutomata->initializeCellularAutomata(&errorMessage)) {

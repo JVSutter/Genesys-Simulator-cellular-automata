@@ -140,6 +140,10 @@ protected:
 
 private: //! new private user methods
 	void _ensureCellularAutomata();
+	bool _checkImplementedTypes(std::string* errorMessage) const;
+	bool _checkLattice(std::string* errorMessage) const;
+	bool _checkRuleCompatibility(std::string* errorMessage) const;
+	bool _checkUpdatePolicy(std::string* errorMessage) const;
 	void _stepCellularAutomataByPolicy();
 	void _stepSequential();
 	void _stepRandom();

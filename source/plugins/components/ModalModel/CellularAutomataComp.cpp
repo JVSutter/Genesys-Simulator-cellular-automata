@@ -81,6 +81,8 @@ void CellularAutomataComp::_saveInstance(PersistenceRecord *fields, bool saveDef
 }
 
 bool CellularAutomataComp::_check(std::string* errorMessage) {
+	if (!_checkImplementedTypes(errorMessage))
+		return false;
 	if (_cellularAutomata == nullptr) {
 		if (errorMessage != nullptr)
 			*errorMessage += "Cellular automata type was not configured. ";
@@ -111,6 +113,12 @@ bool CellularAutomataComp::_check(std::string* errorMessage) {
 			*errorMessage += "State set type was not configured. ";
 		return false;
 	}
+	if (!_checkLattice(errorMessage))
+		return false;
+	if (!_checkRuleCompatibility(errorMessage))
+		return false;
+	if (!_checkUpdatePolicy(errorMessage))
+		return false;
 	_cellularAutomata->setLattice(_lattice);
 	_cellularAutomata->setLocalRule(_localRule);
 	_cellularAutomata->setNeighborhood(_neighboorhood);
@@ -339,6 +347,109 @@ void CellularAutomataComp::setBoundaryType(CellularAutomataComp::BoundaryType ne
 void CellularAutomataComp::_ensureCellularAutomata() {
 	if (_cellularAutomata == nullptr)
 		setCellularAutomataType(_cellularAutomataType);
+}
+
+bool CellularAutomataComp::_checkImplementedTypes(std::string* errorMessage) const {
+	if (_cellularAutomataType == CellularAutomataType::ASYNCHRONOUS ||
+			_cellularAutomataType == CellularAutomataType::NONUNIFORMRULE ||
+			_cellularAutomataType == CellularAutomataType::NONUNIFORMNEIGHBOOR ||
+			_cellularAutomataType == CellularAutomataType::USERDEFINED) {
+		if (errorMessage != nullptr)
+			*errorMessage += "Configured cellular automata type is not implemented yet. ";
+		return false;
+	}
+	if (_latticeType == LatticeType::TRIANGULAR ||
+			_latticeType == LatticeType::HEXAGONAL ||
+			_latticeType == LatticeType::NETWORK ||
+			_latticeType == LatticeType::USERDEFINED) {
+		if (errorMessage != nullptr)
+			*errorMessage += "Configured lattice type is not implemented yet. ";
+		return false;
+	}
+	if (_neighboorhoodType == NeighboorhoodType::BACKWARD ||
+			_neighboorhoodType == NeighboorhoodType::FORWARD ||
+			_neighboorhoodType == NeighboorhoodType::USERDEFINED) {
+		if (errorMessage != nullptr)
+			*errorMessage += "Configured neighborhood type is not implemented yet. ";
+		return false;
+	}
+	if (_boundaryType == BoundaryType::USERDEFINED) {
+		if (errorMessage != nullptr)
+			*errorMessage += "Configured boundary type is not implemented yet. ";
+		return false;
+	}
+	if (_stateSetType == StateSetType::USERDEFINED) {
+		if (errorMessage != nullptr)
+			*errorMessage += "Configured state set type is not implemented yet. ";
+		return false;
+	}
+	if (_localRuleType == LocalRuleType::HPP || _localRuleType == LocalRuleType::USERDEFINED) {
+		if (errorMessage != nullptr)
+			*errorMessage += "Configured local rule type is not implemented yet. ";
+		return false;
+	}
+	return true;
+}
+
+bool CellularAutomataComp::_checkLattice(std::string* errorMessage) const {
+	const std::vector<unsigned short> dimensions = _lattice->getDimensions();
+	if (dimensions.empty()) {
+		if (errorMessage != nullptr)
+			*errorMessage += "Lattice must have at least one dimension. ";
+		return false;
+	}
+	for (unsigned short dimension : dimensions) {
+		if (dimension == 0) {
+			if (errorMessage != nullptr)
+				*errorMessage += "All lattice dimensions must be greater than zero. ";
+			return false;
+		}
+	}
+	return true;
+}
+
+bool CellularAutomataComp::_checkRuleCompatibility(std::string* errorMessage) const {
+	const unsigned short numDimensions = _lattice->getNumDimensions();
+	if (_neighboorhoodType == NeighboorhoodType::CENTERED && numDimensions != 1) {
+		if (errorMessage != nullptr)
+			*errorMessage += "Centered neighborhood is currently supported only for 1D lattices. ";
+		return false;
+	}
+	if (_localRuleType == LocalRuleType::ELEMENTAR_CA) {
+		if (numDimensions != 1) {
+			if (errorMessage != nullptr)
+				*errorMessage += "Elementary cellular automata rule requires a 1D lattice. ";
+			return false;
+		}
+		if (_neighboorhood == nullptr || _neighboorhood->getRadius() != 1) {
+			if (errorMessage != nullptr)
+				*errorMessage += "Elementary cellular automata rule requires radius-1 neighborhood. ";
+			return false;
+		}
+	}
+	if (_localRuleType == LocalRuleType::GAME_OF_LIFE) {
+		if (numDimensions != 2 || _neighboorhoodType != NeighboorhoodType::MOORE || _neighboorhood->getRadius() != 1) {
+			if (errorMessage != nullptr)
+				*errorMessage += "Game of Life requires a 2D lattice with Moore radius-1 neighborhood. ";
+			return false;
+		}
+		StateSet_Enumerable* enumerableStateSet = dynamic_cast<StateSet_Enumerable*>(_stateSet);
+		if (_stateSetType != StateSetType::ENUMERATED || enumerableStateSet == nullptr || enumerableStateSet->getStatesSize() != 2) {
+			if (errorMessage != nullptr)
+				*errorMessage += "Game of Life requires an enumerated binary state set. ";
+			return false;
+		}
+	}
+	return true;
+}
+
+bool CellularAutomataComp::_checkUpdatePolicy(std::string* errorMessage) const {
+	if (_updatePolicyType == UpdatePolicyType::BLOCKS && _updateBlockSize == 0) {
+		if (errorMessage != nullptr)
+			*errorMessage += "Block update policy requires update block size greater than zero. ";
+		return false;
+	}
+	return true;
 }
 
 void CellularAutomataComp::_stepCellularAutomataByPolicy() {
