@@ -23,6 +23,10 @@
 #include "plugins/components/ModalModel/CellularAutomata/Neighborhood_Center.h"
 #include "plugins/components/ModalModel/CellularAutomata/Neighborhood_Moore.h"
 #include "plugins/components/ModalModel/CellularAutomata/Neighborhood_VonNeumann.h"
+#include "plugins/components/ModalModel/CellularAutomata/State.h"
+#include "plugins/components/ModalModel/CellularAutomata/StateSet_Enumerable.h"
+
+#include <sstream>
 
 #ifdef PLUGINCONNECT_DYNAMIC
 
@@ -72,7 +76,36 @@ void CellularAutomataComp::_saveInstance(PersistenceRecord *fields, bool saveDef
 }
 
 bool CellularAutomataComp::_check(std::string* errorMessage) {
-	*errorMessage += "";
+	if (_cellularAutomata == nullptr) {
+		if (errorMessage != nullptr)
+			*errorMessage += "Cellular automata type was not configured. ";
+		return false;
+	}
+	if (_lattice == nullptr) {
+		if (errorMessage != nullptr)
+			*errorMessage += "Lattice type was not configured. ";
+		return false;
+	}
+	if (_localRule == nullptr) {
+		if (errorMessage != nullptr)
+			*errorMessage += "Local rule type was not configured. ";
+		return false;
+	}
+	if (_neighboorhood == nullptr) {
+		if (errorMessage != nullptr)
+			*errorMessage += "Neighborhood type was not configured. ";
+		return false;
+	}
+	if (_boundary == nullptr) {
+		if (errorMessage != nullptr)
+			*errorMessage += "Boundary type was not configured. ";
+		return false;
+	}
+	if (_stateSet == nullptr) {
+		if (errorMessage != nullptr)
+			*errorMessage += "State set type was not configured. ";
+		return false;
+	}
 	_cellularAutomata->setLattice(_lattice);
 	_cellularAutomata->setLocalRule(_localRule);
 	_cellularAutomata->setNeighborhood(_neighboorhood);
@@ -88,6 +121,44 @@ void CellularAutomataComp::_initBetweenReplications() {
 	_cellularAutomata->init();
 }
 
+bool CellularAutomataComp::initializeCellularAutomata(std::string* errorMessage) {
+	std::string localErrorMessage;
+	std::string* message = errorMessage != nullptr ? errorMessage : &localErrorMessage;
+	if (!_check(message))
+		return false;
+	return _cellularAutomata->init();
+}
+
+void CellularAutomataComp::stepCellularAutomata() {
+	if (_cellularAutomata != nullptr)
+		_cellularAutomata->step();
+}
+
+bool CellularAutomataComp::setCellState(long cellNumber, long value) {
+	if (_lattice == nullptr)
+		return false;
+	State state(value);
+	return _lattice->setCellState(cellNumber, &state);
+}
+
+std::string CellularAutomataComp::showCellularAutomata() const {
+	if (_lattice == nullptr)
+		return "";
+	std::ostringstream output;
+	for (unsigned long cellNumber = 0; cellNumber < _lattice->getCellsSize(); ++cellNumber) {
+		output << _lattice->getCell(static_cast<long>(cellNumber))->getCurrentState().getValue();
+	}
+	return output.str();
+}
+
+void CellularAutomataComp::setElementaryRuleNumber(uint8_t ruleNumber) {
+	_elementaryRuleNumber = ruleNumber;
+	if (_localRuleType == LocalRuleType::ELEMENTAR_CA && _localRule != nullptr) {
+		if (auto* elementaryRule = dynamic_cast<LocalRule_Elementary*>(_localRule))
+			elementaryRule->setRuleNumber(ruleNumber);
+	}
+}
+
 LocalRule *CellularAutomataComp::getlocalRule() const
 {
 	return _localRule;
@@ -101,10 +172,12 @@ CellularAutomataComp::LocalRuleType CellularAutomataComp::getlocalRuleType() con
 void CellularAutomataComp::setLocalRuleType(CellularAutomataComp::LocalRuleType newLocalRuleType)
 {
 	_localRuleType = newLocalRuleType;
+	_ensureCellularAutomata();
 	if (_localRule != nullptr)
 		delete _localRule;
+	_localRule = nullptr;
 	if (_localRuleType == LocalRuleType::ELEMENTAR_CA) {
-		_localRule = new LocalRule_Elementary(_cellularAutomata, 30);
+		_localRule = new LocalRule_Elementary(_cellularAutomata, _elementaryRuleNumber);
 	} else if (_localRuleType == LocalRuleType::GAME_OF_LIFE) {
 		_localRule = new LocalRule_GameOfLife(_cellularAutomata);
 	} else if (_localRuleType == LocalRuleType::BIASED_COMPETITION) {
@@ -115,7 +188,13 @@ void CellularAutomataComp::setLocalRuleType(CellularAutomataComp::LocalRuleType 
 void CellularAutomataComp::setStateSetType(CellularAutomataComp::StateSetType newStateSetType)
 {
 	_stateSetType = newStateSetType;
-	if (_stateSet == nullptr)
+	_ensureCellularAutomata();
+	if (_stateSet != nullptr)
+		delete _stateSet;
+	_stateSet = nullptr;
+	if (_stateSetType == StateSetType::ENUMERATED)
+		_stateSet = new StateSet_Enumerable(_cellularAutomata, {new State(0), new State(1)});
+	else
 		_stateSet = new StateSet(_cellularAutomata);
 }
 
@@ -157,7 +236,8 @@ void CellularAutomataComp::setCellularAutomataType(CellularAutomataComp::Cellula
 {
 	_cellularAutomataType = newCellularAutomataType;
 	if (_cellularAutomata != nullptr)
-		_cellularAutomata->~CellularAutomataBase();
+		delete _cellularAutomata;
+	_cellularAutomata = nullptr;
 	if (_cellularAutomataType == CellularAutomataType::CLASSIC)
 		_cellularAutomata = new CellularAutomata_Classic();
 	else if (_cellularAutomataType == CellularAutomataType::TIMED_1D)
@@ -172,6 +252,7 @@ CellularAutomataComp::LatticeType CellularAutomataComp::getLatticeType() const
 void CellularAutomataComp::setLatticeType(CellularAutomataComp::LatticeType newLatticeStructure)
 {
 	_latticeType = newLatticeStructure;
+	_ensureCellularAutomata();
 	if (_lattice == nullptr)
 		_lattice = new Lattice(_cellularAutomata);
 }
@@ -184,8 +265,10 @@ CellularAutomataComp::NeighboorhoodType CellularAutomataComp::getNeighboorhoodTy
 void CellularAutomataComp::setNeighboorhoodType(CellularAutomataComp::NeighboorhoodType newNeighboorhood)
 {
 	_neighboorhoodType = newNeighboorhood;
+	_ensureCellularAutomata();
 	if (_neighboorhood != nullptr)
 		delete _neighboorhood;
+	_neighboorhood = nullptr;
 	if (_neighboorhoodType == NeighboorhoodType::CENTERED)
 		_neighboorhood = new Neighborhood_Center(_cellularAutomata);
 	else if (_neighboorhoodType == NeighboorhoodType::MOORE)
@@ -204,10 +287,16 @@ void CellularAutomataComp::setBoundaryType(CellularAutomataComp::BoundaryType ne
 	_boundaryType = newBoundary;
 	if (_boundary != nullptr)
 		delete _boundary;
+	_boundary = nullptr;
 	if (_boundaryType == BoundaryType::CLOSED)
 		_boundary = new Boundary_Closed();
 	else if (_boundaryType == BoundaryType::FIXED)
 		_boundary = new Boundary_Fixed();
+}
+
+void CellularAutomataComp::_ensureCellularAutomata() {
+	if (_cellularAutomata == nullptr)
+		setCellularAutomataType(_cellularAutomataType);
 }
 
 PluginInformation* CellularAutomataComp::GetPluginInformation() {

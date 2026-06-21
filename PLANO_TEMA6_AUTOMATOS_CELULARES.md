@@ -877,6 +877,19 @@ cmake -S . -B build/ca-example -G Ninja \
 cmake --build build/ca-example --target genesys_terminal_application
 ```
 
+Rodar o exemplo inicial de automato celular 1D com Regra 90 usando as classes
+internas diretamente:
+
+```bash
+./scripts/run_ca_rule90.sh
+```
+
+Rodar a mesma Regra 90 passando pelo componente `CellularAutomataComp`:
+
+```bash
+./scripts/run_ca_comp_rule90.sh
+```
+
 ## 10. Criterios de conclusao
 
 Considere o trabalho tecnicamente pronto quando for possivel demonstrar:

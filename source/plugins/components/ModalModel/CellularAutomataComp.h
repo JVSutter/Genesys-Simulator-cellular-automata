@@ -19,6 +19,8 @@
 #include "plugins/components/ModalModel/CellularAutomata/Neighborhood.h"
 #include "plugins/components/ModalModel/CellularAutomata/StateSet.h"
 
+#include <cstdint>
+
 class BoundaryCondition;
 
 /*!
@@ -74,6 +76,12 @@ public: //! new public user methods for this component
 	CellularAutomataComp::StateSetType getStateSetType() const;
 	void setStateSetType(CellularAutomataComp::StateSetType newStateSetType);
 
+	bool initializeCellularAutomata(std::string* errorMessage = nullptr);
+	void stepCellularAutomata();
+	bool setCellState(long cellNumber, long value);
+	std::string showCellularAutomata() const;
+	void setElementaryRuleNumber(uint8_t ruleNumber);
+
 	//CellularAutomataBase *getcellularAutomata() const;
 	Lattice *getlattice() const;
 	Neighborhood *getNeighboorhood() const;
@@ -119,7 +127,7 @@ protected:
 	// virtual void _createAttachedAttributes() override;
 
 private: //! new private user methods
-	// ...
+	void _ensureCellularAutomata();
 
 private: //! Attributes that should be loaded or saved with this component (Persistent Fields)
 
@@ -138,6 +146,7 @@ private: //! Attributes that should be loaded or saved with this component (Pers
 	CellularAutomataComp::BoundaryType _boundaryType = DEFAULT.boundaryType;
 	CellularAutomataComp::StateSetType _stateSetType = DEFAULT.stateSetType;
 	CellularAutomataComp::LocalRuleType _localRuleType = DEFAULT.localRuleType;
+	uint8_t _elementaryRuleNumber = 30;
 
 private: //! Attributes that do not need to be loaded or saved with this component (Non Persistent Fields)
 	CellularAutomataBase* _cellularAutomata = nullptr;
