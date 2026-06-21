@@ -29,6 +29,17 @@ bool StateSet_Enumerable::contains(const State& state) const {
 	return false;
 }
 
+bool StateSet_Enumerable::tryMakeState(long value, State* state) const {
+	for (State* allowedState : states) {
+		if (allowedState != nullptr && allowedState->getValue() == value) {
+			if (state != nullptr)
+				*state = *allowedState;
+			return true;
+		}
+	}
+	return false;
+}
+
 std::string StateSet_Enumerable::show() const {
 	std::string output = "{";
 	for (unsigned int i = 0; i < states.size(); ++i) {

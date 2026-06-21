@@ -156,18 +156,22 @@ void CellularAutomataComp::stepCellularAutomata() {
 bool CellularAutomataComp::setCellState(long cellNumber, long value) {
 	if (_lattice == nullptr)
 		return false;
-	State state(value);
-	if (_stateSet != nullptr && !_stateSet->contains(state))
+	State state;
+	if (_stateSet != nullptr && !_stateSet->tryMakeState(value, &state))
 		return false;
+	else if (_stateSet == nullptr)
+		state.setValue(value);
 	return _lattice->setCellState(cellNumber, &state);
 }
 
 bool CellularAutomataComp::setCellState(const std::vector<int>& position, long value) {
 	if (_lattice == nullptr)
 		return false;
-	State state(value);
-	if (_stateSet != nullptr && !_stateSet->contains(state))
+	State state;
+	if (_stateSet != nullptr && !_stateSet->tryMakeState(value, &state))
 		return false;
+	else if (_stateSet == nullptr)
+		state.setValue(value);
 	return _lattice->setCellState(position, &state);
 }
 

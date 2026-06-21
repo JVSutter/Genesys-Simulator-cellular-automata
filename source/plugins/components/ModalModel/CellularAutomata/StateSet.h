@@ -13,6 +13,7 @@ public:
 	virtual ~StateSet()=default;
 public:
 	virtual bool contains(const State& state) const;
+	virtual bool tryMakeState(long value, State* state) const;
 	virtual std::string show() const;
 	virtual std::string typeName() const;
 protected:

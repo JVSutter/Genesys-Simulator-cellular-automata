@@ -14,6 +14,7 @@ public:
 	virtual ~StateSet_Enumerable()=default;
 public:
 	virtual bool contains(const State& state) const override;
+	virtual bool tryMakeState(long value, State* state) const override;
 	virtual std::string show() const override;
 	virtual std::string typeName() const override;
 	unsigned int size();
