@@ -40,7 +40,7 @@ void RunRule90(Model* model, CellularAutomataComp::BoundaryType boundaryType, co
 		return;
 	}
 
-	SetInitialPattern(cellularAutomata, "0001000");
+	SetInitialPattern(cellularAutomata, "1001000");
 
 	std::cout << "1D lattice, 7 cells, centered radius-1 neighborhood, " << boundaryName << " boundary" << std::endl;
 	std::cout << std::endl;
@@ -71,6 +71,10 @@ int Smart_CellularAutomataCompRule90::main(int argc, char** argv) {
 	RunRule90(model, CellularAutomataComp::BoundaryType::CLOSED, "closed");
 	std::cout << std::endl;
 	RunRule90(model, CellularAutomataComp::BoundaryType::FIXED, "fixed");
+	std::cout << std::endl;
+	RunRule90(model, CellularAutomataComp::BoundaryType::REFLEXIVE, "reflexive");
+	std::cout << std::endl;
+	RunRule90(model, CellularAutomataComp::BoundaryType::ADIABATIC, "adiabatic");
 
 	delete genesys;
 	return 0;

@@ -13,8 +13,10 @@
 
 #include "plugins/components/ModalModel/CellularAutomataComp.h"
 #include "kernel/simulator/Model.h"
+#include "plugins/components/ModalModel/CellularAutomata/Boundary_Adiabatic.h"
 #include "plugins/components/ModalModel/CellularAutomata/Boundary_Closed.h"
 #include "plugins/components/ModalModel/CellularAutomata/Boundary_Fixed.h"
+#include "plugins/components/ModalModel/CellularAutomata/Boundary_Reflexive.h"
 #include "plugins/components/ModalModel/CellularAutomata/CellularAutomata_Classic.h"
 #include "plugins/components/ModalModel/CellularAutomata/CellularAutomata_1DTimed.h"
 #include "plugins/components/ModalModel/CellularAutomata/LocalRule_Elementary.h"
@@ -292,6 +294,10 @@ void CellularAutomataComp::setBoundaryType(CellularAutomataComp::BoundaryType ne
 		_boundary = new Boundary_Closed();
 	else if (_boundaryType == BoundaryType::FIXED)
 		_boundary = new Boundary_Fixed();
+	else if (_boundaryType == BoundaryType::REFLEXIVE)
+		_boundary = new Boundary_Reflexive();
+	else if (_boundaryType == BoundaryType::ADIABATIC)
+		_boundary = new Boundary_Adiabatic();
 }
 
 void CellularAutomataComp::_ensureCellularAutomata() {
