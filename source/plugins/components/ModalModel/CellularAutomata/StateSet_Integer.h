@@ -2,6 +2,7 @@
 
 #include "plugins/components/ModalModel/CellularAutomata/StateSet.h"
 
+#include <cmath>
 #include <limits>
 #include <string>
 
@@ -14,7 +15,11 @@ public:
 	}
 
 	virtual bool contains(const State& state) const override {
-		return state.getValue() >= minValue && state.getValue() <= maxValue;
+		const double value = state.getDoubleValue();
+		return std::isfinite(value) &&
+				std::floor(value) == value &&
+				value >= static_cast<double>(minValue) &&
+				value <= static_cast<double>(maxValue);
 	}
 
 	virtual std::string show() const override {

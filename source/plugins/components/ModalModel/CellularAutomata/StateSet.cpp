@@ -23,6 +23,10 @@ bool StateSet::contains(const State& state) const {
 }
 
 bool StateSet::tryMakeState(long value, State* state) const {
+	return tryMakeState(static_cast<double>(value), state);
+}
+
+bool StateSet::tryMakeState(double value, State* state) const {
 	State candidate(value);
 	if (!contains(candidate))
 		return false;

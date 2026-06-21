@@ -2,6 +2,7 @@
 
 #include "plugins/components/ModalModel/CellularAutomata/StateSet.h"
 
+#include <cmath>
 #include <string>
 
 class StateSet_Bit : public StateSet {
@@ -11,7 +12,8 @@ public:
 	}
 
 	virtual bool contains(const State& state) const override {
-		return state.getValue() == 0 || state.getValue() == 1;
+		const double value = state.getDoubleValue();
+		return std::isfinite(value) && (value == 0.0 || value == 1.0);
 	}
 
 	virtual std::string show() const override {

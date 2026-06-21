@@ -83,8 +83,12 @@ public: //! new public user methods for this component
 
 	bool initializeCellularAutomata(std::string* errorMessage = nullptr);
 	void stepCellularAutomata();
+	bool setCellState(long cellNumber, int value);
 	bool setCellState(long cellNumber, long value);
+	bool setCellState(long cellNumber, double value);
+	bool setCellState(const std::vector<int>& position, int value);
 	bool setCellState(const std::vector<int>& position, long value);
+	bool setCellState(const std::vector<int>& position, double value);
 	std::string showCellularAutomata() const;
 	void setElementaryRuleNumber(uint8_t ruleNumber);
 	CellularAutomataComp::UpdatePolicyType getUpdatePolicyType() const;

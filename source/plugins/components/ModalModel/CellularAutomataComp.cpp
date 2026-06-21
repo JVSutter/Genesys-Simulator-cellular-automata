@@ -153,25 +153,41 @@ void CellularAutomataComp::stepCellularAutomata() {
 	_stepCellularAutomataByPolicy();
 }
 
+bool CellularAutomataComp::setCellState(long cellNumber, int value) {
+	return setCellState(cellNumber, static_cast<long>(value));
+}
+
 bool CellularAutomataComp::setCellState(long cellNumber, long value) {
+	return setCellState(cellNumber, static_cast<double>(value));
+}
+
+bool CellularAutomataComp::setCellState(long cellNumber, double value) {
 	if (_lattice == nullptr)
 		return false;
 	State state;
 	if (_stateSet != nullptr && !_stateSet->tryMakeState(value, &state))
 		return false;
 	else if (_stateSet == nullptr)
-		state.setValue(value);
+		state.setDoubleValue(value);
 	return _lattice->setCellState(cellNumber, &state);
 }
 
+bool CellularAutomataComp::setCellState(const std::vector<int>& position, int value) {
+	return setCellState(position, static_cast<long>(value));
+}
+
 bool CellularAutomataComp::setCellState(const std::vector<int>& position, long value) {
+	return setCellState(position, static_cast<double>(value));
+}
+
+bool CellularAutomataComp::setCellState(const std::vector<int>& position, double value) {
 	if (_lattice == nullptr)
 		return false;
 	State state;
 	if (_stateSet != nullptr && !_stateSet->tryMakeState(value, &state))
 		return false;
 	else if (_stateSet == nullptr)
-		state.setValue(value);
+		state.setDoubleValue(value);
 	return _lattice->setCellState(position, &state);
 }
 
@@ -252,7 +268,7 @@ void CellularAutomataComp::setStateSetType(CellularAutomataComp::StateSetType ne
 		delete _stateSet;
 	_stateSet = nullptr;
 	if (_stateSetType == StateSetType::ENUMERATED)
-		_stateSet = new StateSet_Enumerable(_cellularAutomata, {new State(0), new State(1)});
+		_stateSet = new StateSet_Enumerable(_cellularAutomata, {new State(0L), new State(1L)});
 	else if (_stateSetType == StateSetType::INTEGERBASED)
 		_stateSet = new StateSet_Integer(_cellularAutomata);
 	else if (_stateSetType == StateSetType::BITBASED)

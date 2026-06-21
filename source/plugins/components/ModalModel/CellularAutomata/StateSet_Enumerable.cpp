@@ -23,15 +23,19 @@ StateSet_Enumerable::StateSet_Enumerable(const StateSet_Enumerable& orig)
 
 bool StateSet_Enumerable::contains(const State& state) const {
 	for (State* allowedState : states) {
-		if (allowedState != nullptr && allowedState->getValue() == state.getValue())
+		if (allowedState != nullptr && allowedState->getDoubleValue() == state.getDoubleValue())
 			return true;
 	}
 	return false;
 }
 
 bool StateSet_Enumerable::tryMakeState(long value, State* state) const {
+	return tryMakeState(static_cast<double>(value), state);
+}
+
+bool StateSet_Enumerable::tryMakeState(double value, State* state) const {
 	for (State* allowedState : states) {
-		if (allowedState != nullptr && allowedState->getValue() == value) {
+		if (allowedState != nullptr && allowedState->getDoubleValue() == value) {
 			if (state != nullptr)
 				*state = *allowedState;
 			return true;
@@ -45,7 +49,7 @@ std::string StateSet_Enumerable::show() const {
 	for (unsigned int i = 0; i < states.size(); ++i) {
 		if (i > 0)
 			output += ",";
-		output += states.at(i) == nullptr ? "null" : std::to_string(states.at(i)->getValue());
+		output += states.at(i) == nullptr ? "null" : std::to_string(states.at(i)->getDoubleValue());
 	}
 	return output + "}";
 }
@@ -76,7 +80,7 @@ State* StateSet_Enumerable::getState(unsigned int rank) {
 
 State* StateSet_Enumerable::getState(std::string name) {
 	for (State* s: states) {
-		if (std::to_string(s->getValue())==name) {
+		if (std::to_string(s->getValue())==name || std::to_string(s->getDoubleValue())==name) {
 			return s;
 		}
 	}

@@ -2,6 +2,7 @@
 
 #include "plugins/components/ModalModel/CellularAutomata/StateSet.h"
 
+#include <cmath>
 #include <string>
 
 class StateSet_Double : public StateSet {
@@ -11,11 +12,11 @@ public:
 	}
 
 	virtual bool contains(const State& state) const override {
-		return true;
+		return std::isfinite(state.getDoubleValue());
 	}
 
 	virtual std::string show() const override {
-		return "double-compatible long values";
+		return "finite double values";
 	}
 
 	virtual std::string typeName() const override {
