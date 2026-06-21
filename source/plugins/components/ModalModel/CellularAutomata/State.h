@@ -64,15 +64,15 @@ private:
 
 class State {
 public:
-	State() {}
+	State() : _value(0) {}
 	State(long value) {_value=value;}
-	State(const State& orig){}
+	State(const State& orig) : _value(orig._value) {}
 	virtual ~State() = default;
 public:
 	long getValue(){return _value;}
 	void setValue(long value) {_value=value;}
 	std::string show();
 protected:
-	long _value;
+	long _value = 0;
 private:
 };
