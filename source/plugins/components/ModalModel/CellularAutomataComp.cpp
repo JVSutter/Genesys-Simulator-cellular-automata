@@ -143,6 +143,13 @@ bool CellularAutomataComp::setCellState(long cellNumber, long value) {
 	return _lattice->setCellState(cellNumber, &state);
 }
 
+bool CellularAutomataComp::setCellState(const std::vector<int>& position, long value) {
+	if (_lattice == nullptr)
+		return false;
+	State state(value);
+	return _lattice->setCellState(position, &state);
+}
+
 std::string CellularAutomataComp::showCellularAutomata() const {
 	if (_lattice == nullptr)
 		return "";

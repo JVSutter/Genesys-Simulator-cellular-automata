@@ -20,6 +20,7 @@
 #include "plugins/components/ModalModel/CellularAutomata/StateSet.h"
 
 #include <cstdint>
+#include <vector>
 
 class BoundaryCondition;
 
@@ -79,6 +80,7 @@ public: //! new public user methods for this component
 	bool initializeCellularAutomata(std::string* errorMessage = nullptr);
 	void stepCellularAutomata();
 	bool setCellState(long cellNumber, long value);
+	bool setCellState(const std::vector<int>& position, long value);
 	std::string showCellularAutomata() const;
 	void setElementaryRuleNumber(uint8_t ruleNumber);
 
