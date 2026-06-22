@@ -49,16 +49,6 @@ void PrintNeighborhoodCount(Model* model, CellularAutomataComp::NeighboorhoodTyp
 	std::cout << neighborhoodName << " " << dimensions.size() << "D radius 1: " << neighbors << " neighbors" << std::endl;
 }
 
-void PrintNeighborhoodCounts(Model* model) {
-	std::cout << "Neighborhood sanity check" << std::endl;
-	PrintNeighborhoodCount(model, CellularAutomataComp::NeighboorhoodType::MOORE, "Moore", {3});
-	PrintNeighborhoodCount(model, CellularAutomataComp::NeighboorhoodType::VONNEUMANN, "Von Neumann", {3});
-	PrintNeighborhoodCount(model, CellularAutomataComp::NeighboorhoodType::MOORE, "Moore", {3, 3});
-	PrintNeighborhoodCount(model, CellularAutomataComp::NeighboorhoodType::VONNEUMANN, "Von Neumann", {3, 3});
-	PrintNeighborhoodCount(model, CellularAutomataComp::NeighboorhoodType::MOORE, "Moore", {3, 3, 3});
-	PrintNeighborhoodCount(model, CellularAutomataComp::NeighboorhoodType::VONNEUMANN, "Von Neumann", {3, 3, 3});
-}
-
 void RunRule90(Model* model, CellularAutomataComp::BoundaryType boundaryType, const std::string& boundaryName) {
 	CellularAutomataComp* cellularAutomata = new CellularAutomataComp(model);
 	cellularAutomata->setCellularAutomataType(CellularAutomataComp::CellularAutomataType::CLASSIC);
@@ -101,9 +91,6 @@ int Smart_CellularAutomataCompRule90::main(int argc, char** argv) {
 	setDefaultTraceHandlers(genesys->getTraceManager());
 
 	Model* model = genesys->getModelManager()->newModel();
-
-	PrintNeighborhoodCounts(model);
-	std::cout << std::endl;
 
 	std::cout << "Elementary cellular automaton through CellularAutomataComp - Rule 90" << std::endl;
 	std::cout << std::endl;
