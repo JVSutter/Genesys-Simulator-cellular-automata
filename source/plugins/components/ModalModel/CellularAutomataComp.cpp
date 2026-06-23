@@ -138,6 +138,8 @@ bool CellularAutomataComp::_buildUserDefinedRule(std::string* errorMessage) {
 	if (!userRule->build(_userDefinedRuleSource, buildError)) {
 		*errorMessage += "USERDEFINED local rule failed to compile/load: " + buildError + " ";
 		delete userRule;
+		// userRule registered itself in the automaton (LocalRule ctor); clear the now-dangling pointer.
+		_cellularAutomata->setLocalRule(nullptr);
 		return false;
 	}
 	_localRule = userRule;

@@ -40,10 +40,11 @@ CppCompiler* makeCompiler(Simulator& simulator) {
 	return compiler;
 }
 
-// Runs a 1D elementary CA driven by a user-defined rule built from `userSource`. Single central 1,
-// fixed-0 boundary. Returns the space-time rows t0..t(steps); empty vector if the build failed.
+// Runs a 1D elementary CA driven by a user-defined rule built from `ruleBody` (a function body wrapped
+// into the nextState signature via buildBody). Single central 1, fixed-0 boundary. Returns the
+// space-time rows t0..t(steps); empty vector if the build failed.
 std::vector<std::string> runUserElementary(Simulator& simulator, unsigned short width,
-		const std::string& userSource, unsigned int steps, std::string& errorMessage) {
+		const std::string& ruleBody, unsigned int steps, std::string& errorMessage) {
 	CellularAutomata_Classic cellularAutomata;
 	Lattice lattice(&cellularAutomata, nullptr, {width}, LatticeType::RETICULAR);
 	State zero(0);
@@ -53,7 +54,7 @@ std::vector<std::string> runUserElementary(Simulator& simulator, unsigned short 
 	Neighborhood_Center neighborhood(&cellularAutomata, 1, &boundary);
 	CppCompiler* compiler = makeCompiler(simulator);
 	LocalRule_UserDefined rule(&cellularAutomata, compiler, &stateSet);
-	if (!rule.build(userSource, errorMessage)) {
+	if (!rule.buildBody(ruleBody, errorMessage)) {
 		return {};
 	}
 
@@ -81,8 +82,7 @@ TEST(UserDefinedCA, Rule30FromUserSourceMatchesTextbook) {
 	Simulator simulator;
 	std::string error;
 	// Rule 30: next = left XOR (center OR right). Neighbors order for 1D centered radius-1 = {left,right}.
-	const std::string source = LocalRule_UserDefined::wrapBody(
-		"return neighbors[0] ^ (self | neighbors[1]);");
+	const std::string source = "return neighbors[0] ^ (self | neighbors[1]);";
 	const std::vector<std::string> rows = runUserElementary(simulator, 9, source, 3, error);
 	ASSERT_EQ(rows.size(), 4u) << "build/compile failed: " << error;
 	EXPECT_EQ(rows[0], "000010000");
@@ -95,7 +95,7 @@ TEST(UserDefinedCA, Rule90FromUserSourceMatchesSierpinski) {
 	Simulator simulator;
 	std::string error;
 	// Rule 90: next = left XOR right (center-independent) -> Sierpinski triangle.
-	const std::string source = LocalRule_UserDefined::wrapBody("return neighbors[0] ^ neighbors[1];");
+	const std::string source = "return neighbors[0] ^ neighbors[1];";
 	const std::vector<std::string> rows = runUserElementary(simulator, 11, source, 4, error);
 	ASSERT_EQ(rows.size(), 5u) << "build/compile failed: " << error;
 	EXPECT_EQ(rows[0], "00000100000");
@@ -114,7 +114,7 @@ TEST(UserDefinedCA, UserRule90EqualsBuiltInElementary90) {
 	const unsigned int steps = 15;
 
 	const std::vector<std::string> userRows = runUserElementary(simulator, width,
-		LocalRule_UserDefined::wrapBody("return neighbors[0] ^ neighbors[1];"), steps, error);
+		"return neighbors[0] ^ neighbors[1];", steps, error);
 	ASSERT_EQ(userRows.size(), steps + 1u) << "build/compile failed: " << error;
 
 	// Built-in reference run, same configuration.
@@ -163,11 +163,11 @@ TEST(UserDefinedCA, GameOfLifeBlinkerOscillatesViaUserRule) {
 	// blinker (3 cells) must become vertical after one step and horizontal again after two (period 2).
 	Simulator simulator;
 	std::string error;
-	const std::string gol = LocalRule_UserDefined::wrapBody(
+	const std::string gol =
 		"long live = 0;"
 		"for (int i = 0; i < numNeighbors; ++i) live += neighbors[i];"
 		"if (self != 0) return (live == 2 || live == 3) ? 1 : 0;"
-		"return (live == 3) ? 1 : 0;");
+		"return (live == 3) ? 1 : 0;";
 
 	CellularAutomata_Classic cellularAutomata;
 	const unsigned short side = 5;
@@ -179,7 +179,7 @@ TEST(UserDefinedCA, GameOfLifeBlinkerOscillatesViaUserRule) {
 	Neighborhood_Moore neighborhood(&cellularAutomata, 1, &boundary);
 	CppCompiler* compiler = makeCompiler(simulator);
 	LocalRule_UserDefined rule(&cellularAutomata, compiler, &stateSet);
-	ASSERT_TRUE(rule.build(gol, error)) << error;
+	ASSERT_TRUE(rule.buildBody(gol, error)) << error;
 
 	cellularAutomata.setLattice(&lattice);
 	cellularAutomata.setStateSet(&stateSet);

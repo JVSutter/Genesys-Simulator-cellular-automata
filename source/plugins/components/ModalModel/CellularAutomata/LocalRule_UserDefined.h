@@ -2,8 +2,8 @@
 
 // LocalRule_UserDefined — a cellular-automaton local rule whose transition function is supplied by
 // the user as C++ source and compiled at runtime to a shared library (via the GenESyS CppCompiler),
-// then loaded and invoked per cell. This is the "Linha B" of Tema 6: regras locais arbitrárias
-// definidas pelo usuário, sem recompilar o simulador.
+// then loaded and invoked per cell.
+// This is "Linha B" of Tema 6: arbitrary local rules defined by the user, without recompiling GenESyS.
 //
 // The user only writes a single C-linkage function with this signature (no GenESyS headers needed):
 //
@@ -66,8 +66,8 @@ public:
 			return false;
 		}
 		// Working directory for the generated source and library. Use the compiler's temp dir (the
-		// caller points it at a writable location). Absolute paths are used for the library so that
-		// CppCompiler's success check (which stats the output filename as given) finds the file.
+		// caller points it at a writable location, e.g. the component's .temp/). The output dir is
+		// cleared below so the compiled library path equals the filename we set, which the success check stats.
 		std::string workDir = compiler->getTempDir();
 		if (workDir.empty()) {
 			workDir = "./";
@@ -92,11 +92,22 @@ public:
 		out.close();
 
 		compiler->setSourceFilename(sourceFile);
-		compiler->setOutputFilename(libraryFile); // absolute path
+		compiler->setOutputFilename(libraryFile); // path equals what the compiler's success check stats
 		compiler->setOutputDir("");               // so the compiled path equals libraryFile exactly
+
+		// The generated .cpp/.so are only needed transiently: the compiler consumes the source, and the
+		// loaded library stays mapped after dlopen even once its file is unlinked. Remove both on every
+		// exit so they don't pile up across rebuilds (the unique names already prevent dlopen cache reuse).
+		auto removeBuildFiles = [&]() {
+			std::error_code removeError;
+			std::filesystem::remove(sourceFile, removeError);
+			std::filesystem::remove(libraryFile, removeError);
+		};
+
 		const CppCompiler::CompilationResult result = compiler->compileToDynamicLibrary();
 		if (!result.success) {
 			errorMessage += "LocalRule_UserDefined: compilation failed:\n" + result.compilationErrOutput;
+			removeBuildFiles();
 			return false;
 		}
 		if (libraryLoaded) {
@@ -104,12 +115,14 @@ public:
 			libraryLoaded = false;
 		}
 		if (!compiler->loadLibrary(errorMessage)) {
+			removeBuildFiles();
 			return false;
 		}
 		libraryLoaded = true;
 		void* handle = compiler->getDynamicLibraryHandler();
 		if (handle == nullptr) {
 			errorMessage += "LocalRule_UserDefined: dynamic library handle is null after load.";
+			removeBuildFiles();
 			return false;
 		}
 		dlerror(); // clear any stale error
@@ -119,8 +132,10 @@ public:
 			errorMessage += "LocalRule_UserDefined: could not resolve symbol 'nextState': " +
 				std::string(symbolError != nullptr ? symbolError : "symbol is null");
 			ruleFunction = nullptr;
+			removeBuildFiles();
 			return false;
 		}
+		removeBuildFiles();
 		return true;
 	}
 
@@ -131,6 +146,13 @@ public:
 		return std::string(
 			"extern \"C\" long nextState(long self, const long* neighbors, int numNeighbors) {\n") +
 			"\t(void) self; (void) neighbors; (void) numNeighbors;\n\t" + body + "\n}\n";
+	}
+
+	// Convenience: builds a rule given only its function BODY, wrapping it via wrapBody() into the
+	// required extern "C" nextState signature. Equivalent to build(wrapBody(body), errorMessage). Use
+	// for a simple body; for a full translation unit (helpers, includes, several functions) use build().
+	bool buildBody(const std::string& body, std::string& errorMessage) {
+		return build(wrapBody(body), errorMessage);
 	}
 
 	bool isReady() const { return ruleFunction != nullptr; }
