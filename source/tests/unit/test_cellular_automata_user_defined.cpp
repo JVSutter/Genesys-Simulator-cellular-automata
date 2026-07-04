@@ -167,6 +167,55 @@ TEST(UserDefinedCA, BadUserCodeFailsGracefully) {
 	EXPECT_FALSE(error.empty());
 }
 
+TEST(UserDefinedCA, UserRuleRejectsPreprocessorIncludesBeforeCompilation) {
+	Simulator simulator;
+	CppCompiler* compiler = makeCompiler(simulator);
+	CellularAutomata_Classic cellularAutomata;
+	StateSet_Enumerable stateSet(&cellularAutomata, {});
+	LocalRule_UserDefined rule(&cellularAutomata, compiler, &stateSet);
+
+	std::string error;
+	const bool ok = rule.build(
+		"#include <fstream>\n"
+		"extern \"C\" long nextState(long self, const long*, int) { return self; }\n",
+		error);
+
+	EXPECT_FALSE(ok);
+	EXPECT_FALSE(rule.isReady());
+	EXPECT_NE(error.find("include/pragma"), std::string::npos);
+}
+
+TEST(UserDefinedCA, UserRuleRejectsShellExecutionBeforeCompilation) {
+	Simulator simulator;
+	CppCompiler* compiler = makeCompiler(simulator);
+	CellularAutomata_Classic cellularAutomata;
+	StateSet_Enumerable stateSet(&cellularAutomata, {});
+	LocalRule_UserDefined rule(&cellularAutomata, compiler, &stateSet);
+
+	std::string error;
+	const bool ok = rule.buildBody("return system(\"true\");", error);
+
+	EXPECT_FALSE(ok);
+	EXPECT_FALSE(rule.isReady());
+	EXPECT_NE(error.find("forbidden token 'system'"), std::string::npos);
+}
+
+TEST(UserDefinedCA, UserRuleRejectsOversizedSourceBeforeCompilation) {
+	Simulator simulator;
+	CppCompiler* compiler = makeCompiler(simulator);
+	CellularAutomata_Classic cellularAutomata;
+	StateSet_Enumerable stateSet(&cellularAutomata, {});
+	LocalRule_UserDefined rule(&cellularAutomata, compiler, &stateSet);
+
+	std::string error;
+	const std::string source(64u * 1024u + 1u, ' ');
+	const bool ok = rule.build(source, error);
+
+	EXPECT_FALSE(ok);
+	EXPECT_FALSE(rule.isReady());
+	EXPECT_NE(error.find("64 KiB"), std::string::npos);
+}
+
 // GameOfLifeBlinkerOscillatesViaUserRule — Game of Life (B3/S23) written as a multi-statement user rule
 // over a 2D Moore neighborhood; a horizontal blinker must flip vertical after one step and back after two.
 TEST(UserDefinedCA, GameOfLifeBlinkerOscillatesViaUserRule) {
